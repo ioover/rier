@@ -1,0 +1,13 @@
+[package]
+name = "rier"
+version = "0.1.0"
+authors = ["酿泉 <tioover@gmail.com>"]
+repository = "https://github.com/ioover/rier.git"
+
+[lib]
+name = "rier"
+path = "src/lib.rs"
+
+[dependencies]
+glium = "*"
+cgmath = "*"
