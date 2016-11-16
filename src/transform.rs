@@ -1,7 +1,6 @@
-use cgmath::{Vector3, Matrix4, Quaternion, Zero, One};
+use cgmath::{Vector3, Quaternion, Zero, One};
 use glium::uniforms::{AsUniformValue, UniformValue};
-
-type Scalar = f32;
+use types::{Scalar, Mat4};
 
 pub struct Transform {
     /// Object scale, default `1`.
@@ -10,7 +9,7 @@ pub struct Transform {
     pub position: Vector3<Scalar>,
     /// Object rotation.
     pub rotation: Quaternion<Scalar>,
-    pub matrix: Matrix4<Scalar>,
+    pub matrix: Mat4,
 }
 
 
@@ -19,13 +18,19 @@ impl Transform {
         let trans = Vector3::zero();
         let scale = Scalar::one();
         let rot = Quaternion::zero();
-        let mat = Matrix4::from_translation(trans)*Matrix4::from(rot)*Matrix4::from_scale(scale);
+        let mat = Transform::build_matrix(trans, scale, rot);
         Transform {
             scale: scale,
             position: trans,
             rotation: rot,
             matrix: mat,
         }
+    }
+
+    fn build_matrix(trans: Vector3<Scalar>, scale: Scalar, rot: Quaternion<Scalar>)
+        -> Mat4
+    {
+        Mat4::from_translation(trans) * Mat4::from(rot) * Mat4::from_scale(scale)
     }
 }
 
