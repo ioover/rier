@@ -25,6 +25,7 @@ struct Empty;
 
 impl rier::graphics::Shader for Empty {
     type Vertex = Vertex;
+    type Uniforms = glium::uniforms::EmptyUniforms;
 
     fn vertex() -> &'static str {
         "#version 330 core\nvoid main(void) {}"

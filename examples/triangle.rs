@@ -1,5 +1,6 @@
 extern crate rier;
 #[macro_use] extern crate glium;
+use glium::uniforms::EmptyUniforms;
 
 
 #[derive(Copy, Clone)]
@@ -14,16 +15,16 @@ struct Shader;
 
 impl rier::graphics::Shader for Shader {
     type Vertex = Vertex;
+    type Uniforms = EmptyUniforms;
 
     fn vertex() -> &'static str {
         r#"
         #version 330 core
-        uniform mat4 matrix;
         in vec2 position;
         in vec3 color;
         out vec3 v_color;
         void main() {
-            gl_Position = matrix * vec4(position, 0.0, 1.0);
+            gl_Position = vec4(position, 0.0, 1.0);
             v_color = color;
         }
         "#
@@ -45,6 +46,7 @@ impl rier::graphics::Shader for Shader {
 
 fn main() {
     use glium::DisplayBuild;
+
     let display = glium::glutin::WindowBuilder::new()
         .with_title("triangle")
         .with_dimensions(800, 600)
@@ -66,13 +68,7 @@ fn main() {
                 _ => (),
             }
         }
-        let matrix: [[f32; 4]; 4] = [
-            [1., 0., 0., 0.,],
-            [0., 1., 0., 0.,],
-            [0., 0., 1., 0.,],
-            [0., 0., 0., 1.,],
-        ];
-        renderer.draw(&mesh, &uniform! { matrix: matrix }).unwrap();
+        renderer.draw(&mesh, &EmptyUniforms).unwrap();
         renderer.gfx.swap_buffers();
     }
 }

@@ -100,7 +100,7 @@ impl<S: Shader> Renderer<S> {
         Ok(renderer)
     }
 
-    pub fn draw<U: Uniforms>(&self, mesh: &Mesh<S::Vertex>, uniforms: &U)
+    pub fn draw(&self, mesh: &Mesh<S::Vertex>, uniforms: &S::Uniforms)
         -> Result<(), DrawError>
     {
         let mut frame = self.gfx.frame.borrow_mut();
@@ -111,6 +111,7 @@ impl<S: Shader> Renderer<S> {
 /// Shaders, and the parameters associated with it.
 pub trait Shader {
     type Vertex: Vertex;
+    type Uniforms: Uniforms;
 
     fn vertex() -> &'static str;
 
