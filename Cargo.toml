@@ -9,5 +9,7 @@ name = "rier"
 path = "src/lib.rs"
 
 [dependencies]
-glium = "*"
 cgmath = "*"
+[dependencies.glium]
+git = "https://github.com/ioover/glium/"
+branch = "ioover"
