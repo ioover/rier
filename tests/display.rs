@@ -39,6 +39,8 @@ impl rier::graphics::Shader for Empty {
 
 #[test]
 fn renderer() {
-    let gfx = rier::graphics::Graphics::new(create_display()).gfx();
-    rier::graphics::Renderer::<Empty>::new(gfx.clone()).unwrap();
+    let display = create_display();
+    let target = rier::graphics::Target::from_surface(display.draw());
+    rier::graphics::Renderer::<Empty, _>::new(display, target.clone()).unwrap();
+    target.finish().unwrap();
 }

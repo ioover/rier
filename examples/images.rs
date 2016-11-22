@@ -70,14 +70,14 @@ fn main() {
         let image = glium::texture::RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dimensions);
         glium::texture::CompressedSrgbTexture2d::new(&display, image).unwrap()
     };
-    let gfx = rier::graphics::Graphics::new(display).gfx();
-    let renderer = rier::graphics::Renderer::<Shader>::new(gfx.clone()).unwrap();
-    let mesh = rier::mesh::Mesh::with_indices(&renderer, &[
-        Vertex { position: [-1., -1.], texcoord: [0., 0.] },
+    let target = rier::graphics::Target::from_surface(display.draw());
+    let renderer = rier::graphics::Renderer::<Shader, _>::new(display.clone(), target.clone()).unwrap();
+    let mesh = rier::mesh::Mesh::new(&display, glium::index::PrimitiveType::TriangleStrip, &[
         Vertex { position: [-1.,  1.], texcoord: [0., 1.] },
         Vertex { position: [ 1.,  1.], texcoord: [1., 1.] },
+        Vertex { position: [-1., -1.], texcoord: [0., 0.] },
         Vertex { position: [ 1., -1.], texcoord: [1., 0.] },
-    ], &[1, 2, 0, 3, 0, 2]).unwrap();
+    ]).unwrap();
     
     let sprite = Sprite {
         matrix: rier::Mat4::one(),
@@ -85,13 +85,15 @@ fn main() {
         mesh: mesh,
     };
     'main: loop {
-        for event in gfx.display.poll_events() {
+        for event in display.poll_events() {
             match event {
                 glium::glutin::Event::Closed => break 'main,
                 _ => (),
             }
         }
         renderer.draw(&sprite.mesh, &sprite).unwrap();
-        renderer.gfx.swap_buffers();
+        target.swap_buffers(&display).unwrap();
     }
+    target.finish().unwrap();
+
 }

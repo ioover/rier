@@ -52,23 +52,23 @@ fn main() {
         .with_dimensions(800, 600)
         .build_glium()
         .unwrap();
-    let gfx = rier::graphics::Graphics::new(display).gfx();
-    let renderer = rier::graphics::Renderer::<Shader>::new(gfx.clone()).unwrap();
-
-    let mesh = rier::mesh::Mesh::new(&renderer, &[
+    let target = rier::graphics::Target::from_surface(display.draw());
+    let renderer = rier::graphics::Renderer::<Shader, _>::new(display.clone(), target.clone()).unwrap();
+    let mesh = rier::mesh::Mesh::new(&display, glium::index::PrimitiveType::TrianglesList, &[
             Vertex { position: [-1., -1.], color: [0., 1., 0.] },
             Vertex { position: [ 0.,  1.], color: [0., 0., 1.] },
             Vertex { position: [ 1., -1.], color: [1., 0., 0.] },
         ]).unwrap();
 
     'main: loop {
-        for event in gfx.display.poll_events() {
+        for event in display.poll_events() {
             match event {
                 glium::glutin::Event::Closed => break 'main,
                 _ => (),
             }
         }
         renderer.draw(&mesh, &EmptyUniforms).unwrap();
-        renderer.gfx.swap_buffers();
+        target.swap_buffers(&display).unwrap();
     }
+    target.finish().unwrap();
 }

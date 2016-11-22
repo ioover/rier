@@ -1,5 +1,4 @@
-use glium::{Program, Vertex, Surface, DrawParameters, DrawError, Frame};
-use glium::index::PrimitiveType;
+use glium::{Program, Vertex, Surface, DrawParameters, DrawError, SwapBuffersError, Frame};
 use glium::program::ProgramCreationError;
 use glium::uniforms::Uniforms;
 use std::marker::PhantomData;
@@ -11,88 +10,23 @@ pub use glium::Display;
 pub use std::rc::Rc;
 
 
-/// Reference to `Graphics`.
-#[derive(Clone)]
-pub struct Gfx(Rc<Graphics>);
-
-impl Gfx {
-    pub fn new(gfx: Graphics) -> Gfx {
-        Gfx(Rc::new(gfx))
-    }
-}
-
-
-impl Deref for Gfx {
-    type Target = Graphics;
-
-    fn deref(&self) -> &Graphics {
-        &*self.0
-    }
-}
-
-/// Graphics context.
-pub struct Graphics {
-    pub display: Display,
-    /// Framebuffer
-    /// `Option<Frame>` always `Some`.
-    frame: RefCell<Option<Frame>>,
-}
-
-
-impl Graphics {
-    pub fn new(display: Display) -> Graphics {
-        Graphics {
-            frame: RefCell::new(Some(display.draw())),
-            display: display,
-        }
-    }
-
-    pub fn swap_buffers(&self) {
-        let mut frame = self.frame.borrow_mut();
-        let old_frame: Frame = frame.take().unwrap();
-        if let Err(_) = old_frame.finish() {
-            unreachable!()
-        }
-        let mut new_frame = self.display.draw();
-        new_frame.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 0.0);
-        *frame = Some(new_frame);
-    }
-
-    #[inline]
-    pub fn frame<F: Fn(&mut Frame)>(&self, f: F) {
-        let mut frame = self.frame.borrow_mut();
-        f(frame.as_mut().unwrap());
-    }
-
-    pub fn gfx(self) -> Gfx {
-        Gfx::new(self)
-    }
-}
-
-
-impl Drop for Graphics {
-    fn drop(&mut self) {
-        let frame = self.frame.borrow_mut().take().unwrap();
-        frame.finish().unwrap();
-    }
-}
-
-
-pub struct Renderer<S>
-    where S: Shader
+pub struct Renderer<S, T>
+    where S: Shader, T: Surface
 {
-    pub gfx: Gfx,
+    target: Target<T>,
+    pub display: Display,
     program: Program,
     params: DrawParameters<'static>,
     _mark: PhantomData<S>,
 }
 
-impl<S: Shader> Renderer<S> {
-    pub fn new(gfx: Gfx) -> Result<Renderer<S>, ProgramCreationError> {
-        let program = S::build(&gfx.display)?;
+impl<S: Shader, T: Surface> Renderer<S, T> {
+    pub fn new(display: Display, target: Target<T>) -> Result<Renderer<S, T>, ProgramCreationError> {
+        let program = S::build(&display)?;
         let params = S::draw_parameters();
         let renderer = Renderer {
-            gfx: gfx,
+            target: target,
+            display: display,
             program: program,
             params: params,
             _mark: PhantomData,
@@ -103,8 +37,8 @@ impl<S: Shader> Renderer<S> {
     pub fn draw(&self, mesh: &Mesh<S::Vertex>, uniforms: &S::Uniforms)
         -> Result<(), DrawError>
     {
-        let mut frame = self.gfx.frame.borrow_mut();
-        frame.as_mut().unwrap().draw(mesh, mesh, &self.program, uniforms, &self.params)
+        let mut frame = self.target.borrow_mut();
+        frame.draw(mesh, mesh, &self.program, uniforms, &self.params)
     }
 }
 
@@ -121,10 +55,6 @@ pub trait Shader {
         None
     }
 
-    fn primitive_type() -> PrimitiveType {
-        PrimitiveType::TrianglesList
-    }
-
     fn draw_parameters() -> DrawParameters<'static> {
         use glium::Blend;
 
@@ -136,5 +66,39 @@ pub trait Shader {
 
     fn build(display: &Display) -> Result<Program, ProgramCreationError> {
         Program::from_source(display, Self::vertex(), Self::fragment(), Self::geometry())
+    }
+}
+
+
+pub struct Target<T: Surface>(Rc<RefCell<T>>);
+
+impl<T: Surface> Clone for Target<T> {
+    fn clone(&self) -> Target<T> {
+        Target(self.0.clone())
+    }
+}
+
+impl<T: Surface> Target<T> {
+    pub fn from_surface(surface: T) -> Target<T> {
+        Target(Rc::new(RefCell::new(surface)))
+    }
+}
+
+impl<T: Surface> Deref for Target<T> {
+    type Target = RefCell<T>;
+    fn deref(&self) -> &RefCell<T> { self.0.deref() }
+} 
+
+
+impl Target<Frame> {
+    pub fn swap_buffers(&self, display: &Display) -> Result<(), SwapBuffersError> {
+        let mut frame = self.borrow_mut();
+        frame.set_finish()?;
+        *frame = display.draw();
+        Ok(())
+    }
+
+    pub fn finish(&self) -> Result<(), SwapBuffersError> {
+        self.borrow_mut().set_finish()
     }
 }
